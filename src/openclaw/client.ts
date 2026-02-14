@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 const BASE_URL = process.env.OPENCLAW_BASE_URL ?? "http://127.0.0.1:18789";
 const TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN ?? "";
 const AGENT_ID = process.env.OPENCLAW_AGENT_ID ?? "main";
@@ -8,19 +10,28 @@ function generateSessionKey(): string {
   return SESSION_KEY_PREFIX ? `${SESSION_KEY_PREFIX}${uuid}` : uuid;
 }
 
+// Zod schemas for response validation
+const OutputTextPartSchema = z.object({
+  type: z.literal("output_text"),
+  text: z.string(),
+});
+
+const ContentItemSchema = z.object({
+  content: z.array(OutputTextPartSchema).optional(),
+});
+
+const ResponseBodySchema = z.object({
+  output: z.array(ContentItemSchema).optional(),
+});
+
 function extractResponseText(body: unknown): string {
-  const output = (body as { output?: unknown[] })?.output;
-  if (!Array.isArray(output)) return "";
+  const result = ResponseBodySchema.safeParse(body);
+  if (!result.success) return "";
 
   const parts: string[] = [];
-  for (const item of output) {
-    const content = (item as { content?: unknown[] })?.content;
-    if (!Array.isArray(content)) continue;
-    for (const part of content) {
-      if ((part as { type?: string }).type === "output_text") {
-        const text = (part as { text?: string }).text;
-        if (typeof text === "string") parts.push(text);
-      }
+  for (const item of result.data.output ?? []) {
+    for (const part of item.content ?? []) {
+      parts.push(part.text);
     }
   }
   return parts.join("");
