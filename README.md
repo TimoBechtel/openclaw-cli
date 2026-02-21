@@ -27,6 +27,8 @@ openclaw-cli ask "Send me a rain report for tomorrow on Telegram." --json # scri
 openclaw-cli mcp # run as an MCP server over stdio
 ```
 
+When omitted, `--session-key` is auto-generated.
+
 ## MCP setup
 
 Example MCP config for Cursor (`~/.cursor/mcp.json`):
@@ -52,7 +54,7 @@ Example MCP config for Cursor (`~/.cursor/mcp.json`):
 | `OPENCLAW_BASE_URL` | OpenClaw Gateway URL | `http://127.0.0.1:18789` |
 | `OPENCLAW_GATEWAY_TOKEN` | Bearer token for auth | - |
 | `OPENCLAW_AGENT_ID` | Target agent ID | `main` |
-| `OPENCLAW_SESSION_KEY_PREFIX` | Prefix for session keys | - |
+| `OPENCLAW_SESSION_KEY_PREFIX` | Prefix for generated session keys | - |
 | `OPENCLAW_ALIAS` | Alias in MCP tool description | `OpenClaw` |
 
 ## Requirements

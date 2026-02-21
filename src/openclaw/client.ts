@@ -1,11 +1,18 @@
+import { humanId } from "human-id";
+
 const BASE_URL = process.env.OPENCLAW_BASE_URL ?? "http://127.0.0.1:18789";
 const TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN ?? "";
 const AGENT_ID = process.env.OPENCLAW_AGENT_ID ?? "main";
 const SESSION_KEY_PREFIX = process.env.OPENCLAW_SESSION_KEY_PREFIX ?? "";
 
 function generateSessionKey(): string {
-  const uuid = crypto.randomUUID();
-  return SESSION_KEY_PREFIX ? `${SESSION_KEY_PREFIX}${uuid}` : uuid;
+  const id = humanId({
+    separator: "-",
+    capitalize: false,
+    adjectiveCount: 1,
+    addAdverb: false,
+  });
+  return SESSION_KEY_PREFIX ? `${SESSION_KEY_PREFIX}${id}` : id;
 }
 
 function extractResponseText(body: unknown): string {
