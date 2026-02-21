@@ -1,5 +1,5 @@
 import * as z from 'zod/v4';
-import { sendMessage as sendToOpenClaw } from '../openclaw/client';
+import { sendMessage as sendToOpenClaw } from '../openclaw/client.js';
 
 const ALIAS = process.env.OPENCLAW_ALIAS ?? 'OpenClaw';
 
