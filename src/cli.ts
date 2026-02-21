@@ -12,13 +12,13 @@ function printHelp(): void {
   console.log(`openclaw-cli ${VERSION}
 
 Usage:
-  openclaw-cli ask "<message>" [--session-key <key>] [--json] [--context=auto|none]
+  openclaw-cli ask ["<message>"] [--session-key <key>] [--json] [--context=auto|none]
   openclaw-cli mcp
   openclaw-cli --help
   openclaw-cli --version
 
 Commands:
-  ask              Send a message to OpenClaw.
+  ask              Send a message to OpenClaw (message arg and/or piped stdin).
   mcp              Run the MCP server over stdio.
 
 Options:
@@ -31,7 +31,7 @@ Options:
 }
 
 type AskArgs = {
-  message: string;
+  message?: string;
   sessionKey?: string;
   json: boolean;
   context: "auto" | "none";
@@ -80,11 +80,7 @@ function parseAskArgs(args: string[]): AskArgs {
   }
 
   const message = messageParts.join(" ").trim();
-  if (!message) {
-    throw new Error("Missing required message argument for 'ask'");
-  }
-
-  return { message, sessionKey, json, context };
+  return { message: message || undefined, sessionKey, json, context };
 }
 
 async function getGitOriginRemote(cwd: string): Promise<string | undefined> {
@@ -112,6 +108,23 @@ async function withAutoContext(message: string): Promise<string> {
   return lines.join("\n");
 }
 
+async function readStdin(): Promise<string | undefined> {
+  if (process.stdin.isTTY) {
+    return undefined;
+  }
+
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of process.stdin) {
+    if (typeof chunk === "string") {
+      chunks.push(new TextEncoder().encode(chunk));
+      continue;
+    }
+    chunks.push(chunk);
+  }
+  const value = Buffer.concat(chunks).toString("utf8");
+  return value.trim() ? value : undefined;
+}
+
 async function run(): Promise<void> {
   const args = process.argv.slice(2);
 
@@ -136,7 +149,14 @@ async function run(): Promise<void> {
   }
 
   const parsed = parseAskArgs(args.slice(1));
-  const message = parsed.context === "none" ? parsed.message : await withAutoContext(parsed.message);
+  const stdinMessage = await readStdin();
+  const baseMessage = parsed.message && stdinMessage
+    ? `${parsed.message}\n\n${stdinMessage}`
+    : parsed.message ?? stdinMessage;
+  if (!baseMessage) {
+    throw new Error("Missing input for 'ask': pass a message argument or pipe text via stdin");
+  }
+  const message = parsed.context === "none" ? baseMessage : await withAutoContext(baseMessage);
   const result = await sendMessage({
     message,
     sessionKey: parsed.sessionKey,
