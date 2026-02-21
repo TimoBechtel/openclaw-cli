@@ -1,15 +1,18 @@
 #!/usr/bin/env bun
 
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { sendMessage } from "./openclaw/client.js";
 import { runMcpServer } from "./mcp/server.js";
 
 const VERSION = process.env.npm_package_version ?? "0.0.0";
+const execFileAsync = promisify(execFile);
 
 function printHelp(): void {
   console.log(`openclaw-cli ${VERSION}
 
 Usage:
-  openclaw-cli ask "<message>" [--session-key <key>] [--json]
+  openclaw-cli ask "<message>" [--session-key <key>] [--json] [--context=auto|none]
   openclaw-cli mcp
   openclaw-cli --help
   openclaw-cli --version
@@ -21,6 +24,7 @@ Commands:
 Options:
   --session-key    Reuse an existing conversation session.
   --json           Print machine-readable JSON output.
+  --context        Context mode for ask: auto (default) or none.
   --help           Show help.
   --version        Show version.
 `);
@@ -30,15 +34,20 @@ type AskArgs = {
   message: string;
   sessionKey?: string;
   json: boolean;
+  context: "auto" | "none";
 };
 
 function parseAskArgs(args: string[]): AskArgs {
   let sessionKey: string | undefined;
   let json = false;
+  let context: "auto" | "none" = "auto";
   const messageParts: string[] = [];
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
+    if (!arg) {
+      continue;
+    }
     if (arg === "--json") {
       json = true;
       continue;
@@ -54,6 +63,15 @@ function parseAskArgs(args: string[]): AskArgs {
       continue;
     }
 
+    if (arg.startsWith("--context=")) {
+      const value = arg.slice("--context=".length);
+      if (value === "auto" || value === "none") {
+        context = value;
+        continue;
+      }
+      throw new Error(`Invalid --context value: ${value}`);
+    }
+
     if (arg.startsWith("-")) {
       throw new Error(`Unknown option: ${arg}`);
     }
@@ -66,7 +84,32 @@ function parseAskArgs(args: string[]): AskArgs {
     throw new Error("Missing required message argument for 'ask'");
   }
 
-  return { message, sessionKey, json };
+  return { message, sessionKey, json, context };
+}
+
+async function getGitOriginRemote(cwd: string): Promise<string | undefined> {
+  try {
+    const isRepo = await execFileAsync("git", ["-C", cwd, "rev-parse", "--is-inside-work-tree"]);
+    if (isRepo.stdout.trim() !== "true") {
+      return undefined;
+    }
+    const origin = await execFileAsync("git", ["-C", cwd, "remote", "get-url", "origin"]);
+    const remote = origin.stdout.trim();
+    return remote || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function withAutoContext(message: string): Promise<string> {
+  const cwd = process.cwd();
+  const lines = ["[openclaw-context]", `cwd: ${cwd}`];
+  const gitRemote = await getGitOriginRemote(cwd);
+  if (gitRemote) {
+    lines.push(`gitRemote: ${gitRemote}`);
+  }
+  lines.push("[/openclaw-context]", "", "User message:", message);
+  return lines.join("\n");
 }
 
 async function run(): Promise<void> {
@@ -93,8 +136,9 @@ async function run(): Promise<void> {
   }
 
   const parsed = parseAskArgs(args.slice(1));
+  const message = parsed.context === "none" ? parsed.message : await withAutoContext(parsed.message);
   const result = await sendMessage({
-    message: parsed.message,
+    message,
     sessionKey: parsed.sessionKey,
   });
 

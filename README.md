@@ -24,6 +24,7 @@ npx skills add TimoBechtel/openclaw-cli --skill openclaw-cli
 openclaw-cli ask "Is there anything on my calendar for today?" # one-off question
 openclaw-cli ask "Let's cancel this appointment and block 1h this afternoon for a coding session." --session-key "<session-key>" # continue same conversation
 openclaw-cli ask "Send me a rain report for tomorrow on Telegram." --json # script-friendly JSON object: { response, sessionKey }
+openclaw-cli ask "What should I do next?" --context=none # opt out of auto context injection
 openclaw-cli mcp # run as an MCP server over stdio
 ```
 
