@@ -2,10 +2,11 @@
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import packageJson from "../package.json" with { type: "json" };
 import { sendMessage } from "./openclaw/client.js";
 import { runMcpServer } from "./mcp/server.js";
 
-const VERSION = process.env.npm_package_version ?? "0.0.0";
+const VERSION = packageJson.version;
 const execFileAsync = promisify(execFile);
 
 function printHelp(): void {
