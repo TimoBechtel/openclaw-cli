@@ -1,18 +1,35 @@
 {
-  "name": "openclaw-mcp",
-  "module": "src/index.ts",
+  "name": "openclaw-cli",
+  "version": "0.0.0",
+  "description": "OpenClaw CLI and MCP server",
+  "module": "src/cli.ts",
   "type": "module",
   "private": true,
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target bun",
-    "start": "bun run src/index.ts",
-    "dev": "bun run src/index.ts"
+    "build": "bun build src/cli.ts --compile --outfile dist/openclaw-cli --minify",
+    "build:linux": "bun build src/cli.ts --compile --target=bun-linux-x64 --outfile dist/openclaw-cli-linux-x64",
+    "build:windows": "bun build src/cli.ts --compile --target=bun-windows-x64 --outfile dist/openclaw-cli-windows-x64.exe",
+    "build:macos": "bun build src/cli.ts --compile --target=bun-darwin-arm64 --outfile dist/openclaw-cli-darwin-arm64",
+    "build:macos-intel": "bun build src/cli.ts --compile --target=bun-darwin-x64 --outfile dist/openclaw-cli-darwin-x64",
+    "build:all": "bun run build && bun run build:linux && bun run build:windows && bun run build:macos && bun run build:macos-intel",
+    "start": "bun run src/cli.ts mcp",
+    "dev": "bun run src/cli.ts",
+    "test": "bun test"
   },
   "bin": {
-    "openclaw-mcp": "src/index.ts"
+    "openclaw-cli": "dist/openclaw-cli"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/github": "^11.0.6",
+    "@semantic-release/release-notes-generator": "^14.1.0",
+    "@types/bun": "latest",
+    "semantic-release": "^25.0.3"
   },
   "peerDependencies": {
     "typescript": "^5"
